@@ -1,0 +1,16 @@
+{
+  "name": "course-enrollment-chatbot-frontend",
+  "version": "1.0.0",
+  "description": "Frontend UI for Course Enrollment Chatbot",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y serve -l 5500 ."
+  },
+  "keywords": [
+    "chatbot",
+    "course-enrollment",
+    "frontend"
+  ],
+  "author": "",
+  "license": "MIT"
+}

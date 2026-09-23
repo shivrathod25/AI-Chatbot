@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Enrollment Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ──────────────────────────────────────────
+     CSS VARIABLES & RESET
+  ────────────────────────────────────────── */
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --bot-bubble: #1a2235;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, #00d4ff08 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, #7c3aed08 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* ──────────────────────────────────────────
+     LAYOUT
+  ────────────────────────────────────────── */
+  .chat-container {
+    width: 100%;
+    max-width: 760px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ──────────────────────────────────────────
+     HEADER
+  ────────────────────────────────────────── */
+  .chat-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .bot-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00d4ff, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0; position: relative;
+  }
+
+  .bot-avatar::after {
+    content: '';
+    position: absolute; bottom: 2px; right: 2px;
+    width: 10px; height: 10px;
+    background: var(--success);
+    border-radius: 50%; border: 2px solid var(--surface);
+  }
+
+  .bot-info h2 { font-size: 15px; font-weight: 600; }
+  .bot-info p  { font-size: 12px; color: var(--accent); font-family: 'Space Mono', monospace; }
+
+  .header-badge {
+    margin-left: auto;
+    background: #00d4ff15; border: 1px solid #00d4ff33;
+    color: var(--accent); font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    padding: 4px 10px; border-radius: 20px;
+  }
+
+  /* ──────────────────────────────────────────
+     PROGRESS BAR
+  ────────────────────────────────────────── */
+  .progress-bar { height: 3px; background: var(--border); }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00d4ff, #7c3aed);
+    width: 0%;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ──────────────────────────────────────────
+     MESSAGES AREA
+  ────────────────────────────────────────── */
+  .messages-area {
+    flex: 1; overflow-y: auto;
+    padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 16px;
+    scroll-behavior: smooth;
+  }
+
+  .messages-area::-webkit-scrollbar { width: 4px; }
+  .messages-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ──────────────────────────────────────────
+     MESSAGE BUBBLES
+  ────────────────────────────────────────── */
+  .msg {
+    display: flex; gap: 10px;
+    animation: msgIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    opacity: 0; transform: translateY(12px);
+  }
+
+  @keyframes msgIn { to { opacity:1; transform:translateY(0); } }
+
+  .msg.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0; align-self: flex-end;
+  }
+
+  .msg.bot .msg-avatar { background: linear-gradient(135deg,#00d4ff33,#7c3aed33); border: 1px solid #00d4ff44; }
+  .msg.user .msg-avatar { background: linear-gradient(135deg,#7c3aed33,#00d4ff33); border: 1px solid #7c3aed44; }
+
+  .msg-content { max-width: 72%; }
+
+  .msg-bubble {
+    padding: 12px 16px; border-radius: 16px;
+    font-size: 14px; line-height: 1.6;
+  }
+
+  .msg.bot .msg-bubble {
+    background: var(--bot-bubble);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg.user .msg-bubble {
+    background: linear-gradient(135deg,#00d4ff22,#7c3aed33);
+    border: 1px solid #00d4ff55;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg-time {
+    font-size: 10px; color: var(--text-muted); margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .msg.user .msg-time { text-align: right; }
+
+  /* ──────────────────────────────────────────
+     TYPING INDICATOR
+  ────────────────────────────────────────── */
+  .typing-indicator { display:flex; gap:10px; align-items:center; opacity:0; transition:opacity 0.2s; }
+  .typing-indicator.visible { opacity: 1; }
+
+  .typing-dots {
+    background: var(--bot-bubble); border: 1px solid var(--border);
+    border-radius: 16px; border-bottom-left-radius: 4px;
+    padding: 12px 16px; display:flex; gap:4px; align-items:center;
+  }
+
+  .dot {
+    width:6px; height:6px; background:var(--accent);
+    border-radius:50%; animation: bounce 1.2s infinite; opacity:0.6;
+  }
+
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%,60%,100% { transform:translateY(0); opacity:0.6; }
+    30%          { transform:translateY(-5px); opacity:1; }
+  }
+
+  /* ──────────────────────────────────────────
+     OPTIONS / QUICK BUTTONS
+  ────────────────────────────────────────── */
+  .options-panel {
+    padding: 0 20px 8px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+    animation: slideUp 0.3s ease forwards;
+  }
+
+  @keyframes slideUp {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .opt-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 9px 18px;
+    border-radius: 24px; font-size: 13px;
+    font-family: 'Sora', sans-serif; cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .opt-btn:hover { border-color: var(--accent); color: var(--accent); background: #00d4ff10; transform: translateY(-1px); }
+  .opt-btn.primary { background:#00d4ff15; border-color:#00d4ff55; color:var(--accent); }
+  .opt-btn.danger  { background:#ef444415; border-color:#ef444455; color:var(--danger); }
+  .opt-btn.success { background:#10b98115; border-color:#10b98155; color:var(--success); }
+  .opt-btn.purple  { background:#7c3aed15; border-color:#7c3aed55; color:#a78bfa; }
+
+  /* ──────────────────────────────────────────
+     COURSE CARDS
+  ────────────────────────────────────────── */
+  .course-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+
+  .course-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px; cursor: pointer;
+    transition: all 0.2s; text-align: left;
+  }
+
+  .course-card:hover { border-color:#7c3aed88; background:#7c3aed10; transform:translateY(-2px); }
+  .course-card .icon { font-size:20px; margin-bottom:6px; }
+  .course-card .name { font-size:12px; font-weight:600; }
+  .course-card .tag  { font-size:10px; color:var(--text-muted); margin-top:2px; font-family:'Space Mono',monospace; }
+
+  /* ──────────────────────────────────────────
+     REGISTRATION FORM
+  ────────────────────────────────────────── */
+  .form-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+
+  .form-card h3 {
+    font-size:13px; color:var(--accent);
+    font-family:'Space Mono',monospace;
+    letter-spacing:0.05em; text-transform:uppercase;
+  }
+
+  .form-row { display:flex; flex-direction:column; gap:5px; }
+
+  .form-row label {
+    font-size:11px; color:var(--text-muted);
+    font-weight:500; letter-spacing:0.03em; text-transform:uppercase;
+  }
+
+  .form-row input {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 12px; color:var(--text);
+    font-family:'Sora',sans-serif; font-size:13px; outline:none;
+    transition: border-color 0.2s;
+  }
+
+  .form-row input:focus   { border-color:#00d4ff55; }
+  .form-row input.error   { border-color:var(--danger); }
+
+  .form-row .hint         { font-size:11px; color:var(--danger); display:none; }
+  .form-row.has-error .hint { display:block; }
+
+  .form-submit {
+    background: linear-gradient(135deg,#00d4ff,#7c3aed);
+    border:none; border-radius:10px; padding:11px;
+    color:white; font-family:'Sora',sans-serif;
+    font-size:14px; font-weight:600; cursor:pointer;
+    transition: all 0.2s; margin-top:4px;
+  }
+
+  .form-submit:hover { opacity:0.9; transform:translateY(-1px); }
+  .form-submit:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+  /* ──────────────────────────────────────────
+     PAYMENT & SUCCESS CARDS
+  ────────────────────────────────────────── */
+  .payment-card {
+    background:linear-gradient(135deg,#f59e0b15,#f59e0b08);
+    border:1px solid #f59e0b33; border-radius:16px; padding:18px;
+  }
+
+  .fee-display {
+    font-size:28px; font-weight:700; color:var(--warning);
+    font-family:'Space Mono',monospace; margin:8px 0;
+  }
+
+  .success-card {
+    background:linear-gradient(135deg,#10b98115,#10b98108);
+    border:1px solid #10b98133; border-radius:16px;
+    padding:20px; text-align:center;
+  }
+
+  .success-card h3 { color:var(--success); font-size:16px; margin-bottom:6px; }
+
+  .enroll-id {
+    font-family:'Space Mono',monospace; font-size:12px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:8px; padding:8px 12px; color:var(--accent);
+    margin-top:8px; letter-spacing:0.05em;
+  }
+
+  /* ──────────────────────────────────────────
+     STRIPE PAYMENT UI
+  ────────────────────────────────────────── */
+  .stripe-container {
+    background:#1a1f2e; border:1px solid #635bff44;
+    border-radius:16px; padding:20px; max-width:340px;
+  }
+
+  .stripe-header {
+    display:flex; align-items:center; gap:10px; margin-bottom:16px;
+  }
+
+  .stripe-logo-badge {
+    background:#635bff; border-radius:8px;
+    padding:6px 10px; font-family:'Space Mono',monospace;
+    font-weight:700; font-size:13px; color:white;
+  }
+
+  .stripe-field {
+    width:100%; background:#1a2235; border:1px solid #1e2d45;
+    border-radius:6px; padding:8px 12px; color:var(--text);
+    font-family:'Space Mono',monospace; font-size:13px; outline:none;
+    margin-bottom:8px;
+  }
+
+  .stripe-pay-btn {
+    width:100%; background:#635bff; border:none;
+    border-radius:10px; padding:13px; color:white;
+    font-family:'Sora',sans-serif; font-size:14px; font-weight:600;
+    cursor:pointer; display:flex; align-items:center;
+    justify-content:center; gap:8px; transition:all 0.2s;
+  }
+
+  .stripe-pay-btn:hover { background:#5a52e8; }
+
+  /* ──────────────────────────────────────────
+     INPUT AREA
+  ────────────────────────────────────────── */
+  .input-area {
+    background:var(--surface); border-top:1px solid var(--border);
+    padding:14px 20px; display:flex; gap:10px;
+    align-items:flex-end; flex-shrink:0;
+  }
+
+  .input-wrap {
+    flex:1; background:var(--surface2); border:1px solid var(--border);
+    border-radius:12px; display:flex; align-items:center;
+    padding:0 14px; transition:border-color 0.2s;
+  }
+
+  .input-wrap:focus-within { border-color:#00d4ff55; }
+  .input-wrap.disabled { opacity:0.4; }
+
+  .input-wrap input {
+    flex:1; background:transparent; border:none; outline:none;
+    color:var(--text); font-family:'Sora',sans-serif;
+    font-size:14px; padding:12px 0;
+  }
+
+  .input-wrap input::placeholder { color:var(--text-muted); }
+
+  .send-btn {
+    width:44px; height:44px;
+    background:linear-gradient(135deg,#00d4ff,#7c3aed);
+    border:none; border-radius:12px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.2s; flex-shrink:0;
+  }
+
+  .send-btn:hover   { transform:scale(1.05); }
+  .send-btn:disabled { opacity:0.3; cursor:not-allowed; transform:none; }
+  .send-btn svg     { width:18px; height:18px; fill:white; }
+
+  /* ──────────────────────────────────────────
+     UTILITIES
+  ────────────────────────────────────────── */
+  .step-pill {
+    display:inline-flex; align-items:center; gap:5px;
+    background:#00d4ff10; border:1px solid #00d4ff22;
+    border-radius:20px; padding:3px 10px;
+    font-size:10px; color:var(--accent);
+    font-family:'Space Mono',monospace; margin-bottom:6px;
+  }
+
+  .highlight        { color:var(--accent); font-weight:600; }
+  .highlight-purple { color:#a78bfa; font-weight:600; }
+  .highlight-green  { color:var(--success); font-weight:600; }
+
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  @media(max-width:600px) {
+    .course-grid { grid-template-columns:1fr; }
+    .msg-content { max-width:85%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+
+  <!-- ── HEADER ── -->
+  <div class="chat-header">
+    <div class="bot-avatar">🎓</div>
+    <div class="bot-info">
+      <h2>Course Enrollment Assistant</h2>
+      <p>AI-Powered • Always Online</p>
+    </div>
+    <div class="header-badge">● LIVE</div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- ── MESSAGES ── -->
+  <div class="messages-area" id="messagesArea">
+    <div class="typing-indicator" id="typingIndicator">
+      <div class="msg-avatar" style="width:32px;height:32px;background:linear-gradient(135deg,#00d4ff33,#7c3aed33);border:1px solid #00d4ff44;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;">🎓</div>
+      <div class="typing-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── OPTIONS PANEL ── -->
+  <div class="options-panel" id="optionsPanel" style="display:none;"></div>
+
+  <!-- ── INPUT ── -->
+  <div class="input-area">
+    <div class="input-wrap disabled" id="inputWrap">
+      <input type="text" id="userInput" placeholder="Use the buttons above..." disabled />
+    </div>
+    <button class="send-btn" id="sendBtn" onclick="sendTyped()" disabled>
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  CONFIG  — change API_BASE to your backend URL
+// ════════════════════════════════════════════
+const API_BASE = "http://localhost:8000";
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+const state = {
+  studentType: '',
+  selectedCourse: '',
+  userData: {},
+  enrollmentId: ''
+};
+
+const COURSES = {
+  IT: [
+    {
+      icon: '🐍',
+      name: 'Python Full Stack Development',
+      tag: 'Full Stack • 6 months',
+      topics: [
+        'Python',
+        'HTML',
+        'CSS',
+        'JavaScript',
+        'Django',
+        'REST APIs',
+        'Git & GitHub'
+      ]
+    },
+    {
+      icon: '🤖',
+      name: 'AI & Machine Learning',
+      tag: 'AI/ML • 8 months',
+      topics: [
+        'Python',
+        'Machine Learning',
+        'Deep Learning',
+        'TensorFlow',
+        'Natural Language Processing',
+        'Computer Vision'
+      ]
+    },
+    {
+      icon: '📊',
+      name: 'Data Science',
+      tag: 'Analytics • 15 months',
+      topics: [
+        'Python',
+        'AI',
+        'Machine Learning',
+        'SQL',
+        'Statistics',
+        'Pandas',
+        'NumPy',
+        'Data Visualization'
+      ]
+    }
+  ],
+
+  NON_IT: [
+    {
+      icon: '📈',
+      name: 'Business Analytics',
+      tag: 'Management • 4 months',
+      topics: [
+        'Excel',
+        'Power BI',
+        'SQL',
+        'Business Intelligence',
+        'Data Visualization'
+      ]
+    },
+    {
+      icon: '📱',
+      name: 'Digital Marketing',
+      tag: 'Marketing • 3 months',
+      topics: [
+        'SEO',
+        'Google Ads',
+        'Social Media Marketing',
+        'Content Marketing',
+        'Analytics'
+      ]
+    },
+    {
+      icon: '💳',
+      name: 'Financial Technology (FinTech)',
+      tag: 'Finance • 5 months',
+      topics: [
+        'Blockchain',
+        'Digital Payments',
+        'Cryptocurrency',
+        'Financial Systems',
+        'Risk Analysis'
+      ]
+    },
+    {
+      icon: '🔢',
+      name: 'Data Analytics for Beginners',
+      tag: 'Beginner • 3 months',
+      topics: [
+        'Excel',
+        'SQL',
+        'Power BI',
+        'Data Cleaning',
+        'Basic Statistics'
+      ]
+    }
+  ]
+};
+
+// ════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function now() {
+  return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+}
+
+function setProgress(pct) {
+  $('progressFill').style.width = pct + '%';
+}
+
+function showTyping() {
+  $('typingIndicator').classList.add('visible');
+  scrollBottom();
+}
+
+function hideTyping() {
+  $('typingIndicator').classList.remove('visible');
+}
+
+function scrollBottom() {
+  setTimeout(() => {
+    const a = $('messagesArea');
+    a.scrollTop = a.scrollHeight;
+  }, 50);
+}
+
+function addMessage(type, content, isHTML = false) {
+  const area = $('messagesArea');
+  const typing = $('typingIndicator');
+  const el = document.createElement('div');
+  el.className = `msg ${type}`;
+  el.innerHTML = `
+    <div class="msg-avatar">${type==='bot'?'🎓':'👤'}</div>
+    <div class="msg-content">
+      <div class="msg-bubble">${isHTML ? content : `<p>${content}</p>`}</div>
+      <div class="msg-time">${now()}</div>
+    </div>`;
+  area.insertBefore(el, typing);
+  scrollBottom();
+}
+
+function showOptions(options) {
+  const panel = $('optionsPanel');
+  panel.style.display = 'flex';
+  panel.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = `opt-btn ${opt.style||''}`;
+    btn.innerHTML = opt.label;
+    btn.onclick = opt.action;
+    panel.appendChild(btn);
+  });
+}
+
+function clearOptions() {
+  const panel = $('optionsPanel');
+  panel.style.display = 'none';
+  panel.innerHTML = '';
+}
+
+function insertCard(html) {
+  const area = $('messagesArea');
+  const typing = $('typingIndicator');
+  const el = document.createElement('div');
+  el.style.cssText = 'padding:0 4px;animation:msgIn .35s cubic-bezier(.34,1.56,.64,1) forwards;opacity:0;transform:translateY(12px);';
+  el.innerHTML = html;
+  area.insertBefore(el, typing);
+  scrollBottom();
+}
+
+function botReply(msg, isHTML = false, delay = 800) {
+  showTyping();
+  return new Promise(resolve => setTimeout(() => {
+    hideTyping();
+    addMessage('bot', msg, isHTML);
+    resolve();
+  }, delay));
+}
+
+function userReply(msg) { addMessage('user', msg); }
+
+function enableInput(ph='Type your message...') {
+  $('inputWrap').classList.remove('disabled');
+  $('userInput').disabled = false;
+  $('userInput').placeholder = ph;
+  $('sendBtn').disabled = false;
+  $('userInput').focus();
+}
+
+function disableInput() {
+  $('inputWrap').classList.add('disabled');
+  $('userInput').disabled = true;
+  $('userInput').placeholder = 'Use the buttons above...';
+  $('sendBtn').disabled = true;
+}
+
+// ════════════════════════════════════════════
+//  CONVERSATION FLOW
+// ════════════════════════════════════════════
+
+// STEP 1 — Welcome
+function startFlow() {
+  setTimeout(async () => {
+    await botReply(`
+      <div class="step-pill">● Step 1 of 8</div>
+      <p>Welcome! 👋 I am your <span class="highlight">Course Enrollment Assistant</span>.</p>
+      <p style="margin-top:8px">I can help you with course suggestions, fees & enrollment. Would you like to see our courses?</p>
+    `, true, 1000);
+    setProgress(15);
+    showOptions([
+      { label:'✅ Yes, Show Me Courses', style:'primary', action: step2_askType },
+      { label:'❌ No, Maybe Later',      style:'danger',  action: step_decline  }
+    ]);
+  }, 400);
+}
+
+function step_decline() {
+  clearOptions();
+  userReply('No, maybe later');
+  botReply('No problem 😊 Come back anytime! We have amazing courses waiting for you.', false, 700);
+  setTimeout(() => showOptions([
+    { label:'🔄 Start Over', style:'', action: resetFlow }
+  ]), 1200);
+}
+
+// STEP 2 — IT or Non-IT
+async function step2_askType() {
+  clearOptions();
+  userReply('Yes, show me courses!');
+  setProgress(25);
+  await botReply(`
+    <div class="step-pill">● Step 2 of 8</div>
+    <p>Great! 🎉 Are you an <span class="highlight">IT Student</span> or a <span class="highlight-purple">Non-IT Student</span>?</p>
+  `, true, 700);
+  showOptions([
+    { label:'💻 IT Student',     style:'primary', action:()=>step3_showCourses('IT')     },
+    { label:'📚 Non-IT Student', style:'purple',  action:()=>step3_showCourses('NON_IT') }
+  ]);
+}
+
+// STEP 3 — Show Courses
+async function step3_showCourses(type) {
+  clearOptions();
+  state.studentType = type;
+  userReply(type === 'IT' ? '💻 IT Student' : '📚 Non-IT Student');
+  setProgress(40);
+
+  const list = COURSES[type];
+ const cards = list.map(c =>
+  `<div class="course-card" onclick="step4_selectCourse('${c.name.replace(/'/g,"\\'")}')">
+      <div class="icon">${c.icon}</div>
+      <div class="name">${c.name}</div>
+      <div class="tag">${c.tag}</div>
+
+      <ul style="
+        margin-top:8px;
+        padding-left:16px;
+        font-size:11px;
+        color:#94a3b8;
+        line-height:1.5;
+      ">
+        ${c.topics.map(topic => `<li>${topic}</li>`).join('')}
+      </ul>
+
+  </div>`
+).join('');
+
+  const label = type === 'IT'
+    ? 'top <span class="highlight">IT courses</span>'
+    : 'best <span class="highlight-purple">Non-IT courses</span>';
+
+  await botReply(`
+    <div class="step-pill">● Step 3 of 8</div>
+    <p>Here are our ${label} for you — tap to select:</p>
+    <div class="course-grid">${cards}</div>
+  `, true, 900);
+}
+
+// STEP 4 — Course Selected → Show Form
+async function step4_selectCourse(name) {
+  state.selectedCourse = name;
+  userReply(`I'm interested in: ${name}`);
+  setProgress(55);
+
+  await botReply(`
+    <div class="step-pill">● Step 4 of 8</div>
+    <p>Great choice! 🎯 <span class="highlight">${name}</span> is an excellent pick!</p>
+    <p style="margin-top:8px">Please fill in your registration details below 📝</p>
+  `, true, 700);
+
+  setTimeout(() => {
+    insertCard(`
+      <div class="form-card">
+        <h3>📋 Registration Form</h3>
+        <div class="form-row" id="rowName">
+          <label>Full Name *</label>
+          <input type="text" id="fName" placeholder="e.g. Rahul Sharma" />
+          <span class="hint">Please enter your full name</span>
+        </div>
+        <div class="form-row" id="rowEmail">
+          <label>Email Address *</label>
+          <input type="email" id="fEmail" placeholder="e.g. rahul@gmail.com" />
+          <span class="hint">Please enter a valid email address</span>
+        </div>
+        <div class="form-row" id="rowPhone">
+          <label>Phone Number *</label>
+          <input type="tel" id="fPhone" placeholder="e.g. 9876543210" maxlength="10" />
+          <span class="hint">10-digit Indian mobile number</span>
+        </div>
+        <div class="form-row" id="rowEdu">
+          <label>Education Background *</label>
+          <input type="text" id="fEdu" placeholder="e.g. B.Com, B.Tech, BCA..." />
+          <span class="hint">Please enter your education</span>
+        </div>
+        <div class="form-row">
+          <label>Selected Course</label>
+          <input type="text" value="${name}" readonly style="opacity:.6;cursor:not-allowed;" />
+        </div>
+        <button class="form-submit" onclick="submitForm()">Submit Registration →</button>
+      </div>
+    `);
+  }, 800);
+}
+
+// STEP 5 — Validate & Submit Form to API
+async function submitForm() {
+  const name  = document.getElementById('fName').value.trim();
+  const email = document.getElementById('fEmail').value.trim();
+  const phone = document.getElementById('fPhone').value.trim();
+  const edu   = document.getElementById('fEdu').value.trim();
+
+  let valid = true;
+
+  // Reset validation
+  ['rowName','rowEmail','rowPhone','rowEdu'].forEach(id => {
+    const row = document.getElementById(id);
+    row.classList.remove('has-error');
+    row.querySelector('input').classList.remove('error');
+  });
+
+  if (name.length < 2) {
+    markError('rowName'); valid = false;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    markError('rowEmail'); valid = false;
+  }
+  if (!/^[6-9]\d{9}$/.test(phone)) {
+    markError('rowPhone'); valid = false;
+  }
+  if (!edu) {
+    markError('rowEdu'); valid = false;
+  }
+
+  if (!valid) return;
+
+  // Disable form during submit
+  document.querySelectorAll('.form-card input, .form-submit').forEach(el => {
+    el.disabled = true; el.style.opacity = '0.6';
+  });
+
+  userReply('✅ Registration form submitted!');
+  setProgress(65);
+
+  // Call backend API
+  try {
+    const res = await fetch(`${API_BASE}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: name,
+        email,
+        phone,
+        education: edu,
+        course: state.selectedCourse
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      state.enrollmentId = data.enrollment_id;
+      state.userData = { name, email, phone, edu };
+
+      await botReply(`
+        <p>✅ Registration saved successfully!</p>
+        <p style="margin-top:6px;color:#64748b;font-size:12px;font-family:'Space Mono',monospace;">
+          Ref: ${data.enrollment_id}
+        </p>
+      `, true, 800);
+
+      await step6_showFee();
+    } else {
+      throw new Error(data.detail || 'Registration failed');
+    }
+
+  } catch (err) {
+    // Fallback (demo mode if backend not running)
+    console.warn('Backend not reachable, running in demo mode:', err.message);
+    state.enrollmentId = 'ENR-' + Date.now().toString(36).toUpperCase();
+    state.userData = { name, email, phone, edu };
+    await botReply(`✅ Registration saved! (Demo Mode)<br><span style="font-size:11px;color:#64748b;font-family:'Space Mono',monospace">Ref: ${state.enrollmentId}</span>`, true, 800);
+    await step6_showFee();
+  }
+}
+
+function markError(rowId) {
+  const row = document.getElementById(rowId);
+  row.classList.add('has-error');
+  row.querySelector('input').classList.add('error');
+}
+
+// STEP 6 — Show Fee
+async function step6_showFee() {
+  setProgress(75);
+  await botReply(`
+    <div class="step-pill">● Step 5 of 8</div>
+    <div class="payment-card">
+      <p style="font-size:12px;color:#64748b;">Course Fee for</p>
+      <p style="font-weight:600;margin:4px 0;">${state.selectedCourse}</p>
+      <div class="fee-display">₹50,000</div>
+      <p style="font-size:11px;color:#64748b;">One-time payment • All study materials included</p>
+    </div>
+    <p style="margin-top:12px">Would you like to <span class="highlight">enroll now</span>? 🚀</p>
+  `, true, 900);
+
+  showOptions([
+    { label:'✅ Yes, Enroll Now!',  style:'success', action: step7_payment },
+    { label:'❌ No, Maybe Later',   style:'danger',  action: step7_decline }
+  ]);
+}
+
+function step7_decline() {
+  clearOptions();
+  userReply('No, maybe later');
+  botReply(`No problem 😊 Your registration is saved!<br><br>
+    <span style="font-size:12px;color:#64748b;font-family:'Space Mono',monospace">
+    Enrollment Ref: ${state.enrollmentId}</span>`, true, 700);
+  setTimeout(() => showOptions([{ label:'🔄 Start Over', style:'', action: resetFlow }]), 1200);
+}
+
+// STEP 7 — Stripe Payment
+async function step7_payment() {
+  clearOptions();
+  userReply('Yes, enroll me now!');
+  setProgress(85);
+
+  await botReply(`
+    <div class="step-pill">● Step 6 of 8</div>
+    <p>Redirecting to <span class="highlight">Stripe Secure Payment Gateway</span> 🔒</p>
+    <p style="margin-top:6px;font-size:12px;color:#64748b;">Processing ₹50,000 payment securely...</p>
+  `, true, 700);
+
+  // Call backend for Stripe checkout link
+  try {
+    const res = await fetch(`${API_BASE}/api/create-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: state.userData.email,
+        course: state.selectedCourse,
+        enrollment_id: state.enrollmentId
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success && data.checkout_url) {
+      // Real Stripe redirect
+      window.open(data.checkout_url, '_blank');
+      await step8_success();
+      return;
+    }
+  } catch (err) {
+    console.warn('Backend not reachable, showing demo Stripe UI');
+  }
+
+  // Demo Stripe UI fallback
+  setTimeout(() => {
+    insertCard(`
+      <div class="stripe-container">
+        <div class="stripe-header">
+          <div class="stripe-logo-badge">stripe</div>
+          <span style="font-size:12px;color:#64748b;">Secure Payment</span>
+          <span style="margin-left:auto;font-size:11px;color:#10b981;background:#10b98115;border:1px solid #10b98133;padding:3px 8px;border-radius:10px;">🔒 SSL</span>
+        </div>
+        <div style="background:#111827;border-radius:10px;padding:12px;margin-bottom:14px;">
+          <div style="font-size:11px;color:#64748b;font-family:'Space Mono',monospace;margin-bottom:4px;">AMOUNT DUE</div>
+          <div style="font-size:26px;font-weight:700;color:#f59e0b;font-family:'Space Mono',monospace;">₹50,000.00</div>
+          <div style="font-size:11px;color:#64748b;">${state.selectedCourse}</div>
+        </div>
+        <div style="background:#111827;border-radius:10px;padding:12px;margin-bottom:14px;">
+          <div style="font-size:11px;color:#64748b;font-family:'Space Mono',monospace;margin-bottom:8px;">CARD DETAILS (Demo)</div>
+          <input class="stripe-field" readonly value="4242 4242 4242 4242" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <input class="stripe-field" readonly value="12/28" style="margin:0;" />
+            <input class="stripe-field" readonly value="123"   style="margin:0;" />
+          </div>
+        </div>
+        <button class="stripe-pay-btn" onclick="processPayment(this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          Pay ₹50,000 Securely
+        </button>
+        <p style="text-align:center;font-size:10px;color:#64748b;margin-top:10px;font-family:'Space Mono',monospace;">Powered by Stripe • 256-bit encryption</p>
+      </div>
+    `);
+  }, 900);
+}
+
+async function processPayment(btn) {
+  btn.disabled = true;
+  btn.innerHTML = `<svg style="animation:spin 1s linear infinite" width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Processing...`;
+  setProgress(95);
+  await botReply('Processing your payment... 🔄', false, 1500);
+  await step8_success();
+}
+
+// STEP 8 — Enrolled!
+async function step8_success() {
+  clearOptions();
+  setProgress(100);
+  userReply('Payment confirmed!');
+
+  await botReply(`
+    <div class="success-card">
+      <div style="font-size:40px;margin-bottom:10px;">✅</div>
+      <h3>Payment Successful!</h3>
+      <p>Congratulations! 🎉 You are now officially enrolled in</p>
+      <p style="color:#e2e8f0;font-weight:600;margin:8px 0;">${state.selectedCourse}</p>
+      <p>A confirmation has been sent to <span style="color:#00d4ff;">${state.userData.email}</span></p>
+      <div class="enroll-id">Enrollment ID: ${state.enrollmentId}</div>
+      <p style="margin-top:12px;font-size:12px;">Classes begin within 7 working days. 🚀</p>
+    </div>
+  `, true, 900);
+
+  setTimeout(() => showOptions([
+    { label:'🔄 New Enrollment', style:'', action: resetFlow },
+    { label:'📞 Contact Support', style:'', action: () => {
+      clearOptions();
+      userReply('Contact support');
+      botReply('Reach us at <span class="highlight">shiv22@gmail.com</span> or <span class="highlight">+91-63549 24823</span> 📞', true, 600);
+      setTimeout(() => showOptions([{ label:'🔄 Start Over', style:'', action:resetFlow }]), 1000);
+    }}
+  ]), 1200);
+}
+
+// ════════════════════════════════════════════
+//  TYPED INPUT (fallback for "Hi" etc.)
+// ════════════════════════════════════════════
+function sendTyped() {
+  const input = $('userInput');
+  const val = input.value.trim();
+  if (!val) return;
+  input.value = '';
+  const lower = val.toLowerCase();
+  if (/^(hi|hello|hey|start|hii|namaste)/.test(lower)) {
+    resetFlow();
+  } else {
+    addMessage('user', val);
+    botReply('Please use the quick reply buttons to navigate 👆', false, 500);
+  }
+}
+
+$('userInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendTyped(); });
+
+function resetFlow() {
+  Object.assign(state, { studentType:'', selectedCourse:'', userData:{}, enrollmentId:'' });
+  clearOptions();
+  disableInput();
+  setProgress(0);
+  startFlow();
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+startFlow();
+</script>
+</body>
+</html>
